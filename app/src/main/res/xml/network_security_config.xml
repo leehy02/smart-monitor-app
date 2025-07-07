@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">18.204.77.217</domain>  <!-- ← 네 서버 IP 주소로 수정! -->
+    </domain-config>
+</network-security-config>
