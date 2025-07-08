@@ -117,41 +117,12 @@ fun AImenuScreen(navController: NavController) {
 
                 Spacer(Modifier.height(30.dp))
 
+                //UI 디자인용
                 aiinfoButton(
                     title = "자세 교정 리포트",
                     guide = "◦ 현재 자세의 목각도와 모니터 간 거리를 분석하여 올바른 자세 교정을 위한 피드백을 제공합니다.",
                     image = R.drawable.health_report,
-                    onClick = {
-                        isLoading.value = true
-                        Log.d("DEBUG", "버튼 누름")
-
-                        scope.launch{
-                            try{
-                                val startTime = System.currentTimeMillis()  // ⏱️ 시작 시간
-                                val saveResult = RetrofitClient.apiService.saveReport()
-                                val endTime = System.currentTimeMillis()    // ⏱️ 끝 시간
-
-                                Log.d("TIME", "GPT 리포트 생성 시간: ${endTime - startTime}ms")
-
-                                if(saveResult.status == "success"){
-                                    val reportList = RetrofitClient.apiService.getLatestReport()
-
-                                    navController.currentBackStackEntry
-                                        ?.savedStateHandle
-                                        ?.set("reportItems",reportList)
-
-                                    navController.navigate("aireport_screen")
-                                }else{
-                                    showErrorModal.value = true
-                                }
-                            }catch(e: Exception){
-                                Log.e("DEBUG", "❌ saveReport 실패: ${e.message}", e)
-                                showErrorModal.value = true
-                            }finally {
-                                isLoading.value = false
-                            }
-                        }
-                    }
+                    onClick = { navController.navigate("aireport_screen") }
                 )
             }
         }
