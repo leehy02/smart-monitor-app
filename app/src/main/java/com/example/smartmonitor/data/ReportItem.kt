@@ -19,3 +19,13 @@ class distanceItem (
     val status: Boolean,
     val distance_cm: Int
 )
+
+class PitchList (
+    val status: Boolean,
+    val pitch_10angle: List<Int>
+)
+
+class DistanceList (
+    val status: Boolean,
+    val distance_10cm: List<Int>
+)

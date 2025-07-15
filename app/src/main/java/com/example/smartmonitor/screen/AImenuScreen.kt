@@ -88,23 +88,23 @@ fun AImenuScreen(navController: NavController) {
             ) {
                 Spacer(Modifier.height(20.dp))
 
-                aiinfoButton(
-                    title = "초기화",
-                    guide = "◦ 모니터 암을 초기상태로 되돌립니다.",
-                    image = R.drawable.reset,
-                    onClick = {
-                        isLoading.value = true
-
-                        NetworkManager.sendResetCommand { success ->
-                            isLoading.value = false
-                            if (success) {
-                                showResetModal.value = true
-                            } else {
-                                showErrorModal.value = true
-                            }
-                        }
-                    }
-                )
+//                aiinfoButton(
+//                    title = "초기화",
+//                    guide = "◦ 모니터 암을 초기상태로 되돌립니다.",
+//                    image = R.drawable.reset,
+//                    onClick = {
+//                        isLoading.value = true
+//
+//                        NetworkManager.sendResetCommand { success ->
+//                            isLoading.value = false
+//                            if (success) {
+//                                showResetModal.value = true
+//                            } else {
+//                                showErrorModal.value = true
+//                            }
+//                        }
+//                    }
+//                )
 
                 Spacer(Modifier.height(30.dp))
 

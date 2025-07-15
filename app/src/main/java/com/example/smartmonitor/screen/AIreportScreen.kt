@@ -2,6 +2,7 @@ package com.example.smartmonitor.screen
 
 import android.R.attr.text
 import android.util.Log
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,7 +40,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.smartmonitor.data.DistanceList
+import com.example.smartmonitor.data.PitchList
 import com.example.smartmonitor.data.ReportItem
 import com.example.smartmonitor.data.SaveItem
 import com.example.smartmonitor.network.RetrofitClient
@@ -58,6 +64,7 @@ import com.example.smartmonitor.screen.ui.theme.SmartMonitorTheme
 import com.example.smartmonitor.screen.user.CommonTopBar
 import com.example.smartmonitor.screen.user.HamMenu
 import kotlinx.coroutines.launch
+import java.nio.file.Files.size
 
 @Composable
 fun AIreportScreen(navController: NavController) {
@@ -75,16 +82,19 @@ fun AIreportScreen(navController: NavController) {
 
     val isLoading = remember { mutableStateOf(true) }
     val showErrorModal = remember { mutableStateOf(false) }
+
     val reportItems = remember { mutableStateOf<List<ReportItem>>(emptyList()) }
+    val distance10List = remember { mutableStateOf<List<Int>>(emptyList()) }
+    val pitch10List = remember { mutableStateOf<List<Int>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         try {
-            // ✅ pitch, distance 조회
+            // ✅ 최근 pitch, distance 조회
             val pitchResponse = RetrofitClient.apiService.getPitch()
             val distanceResponse = RetrofitClient.apiService.getDistance()
 
             val pitchValue = if (pitchResponse.pitch_angle >= 90) 90 else pitchResponse.pitch_angle
-            angle_color.value = if (pitchResponse.pitch_angle > 50) Color(0xFFF64E4E) else Color(0xFF48861A)
+            angle_color.value = if (pitchResponse.pitch_angle < 50) Color(0xFFF64E4E) else Color(0xFF48861A)
 
             val distanceValue = if (distanceResponse.distance_cm >= 90) 90 else distanceResponse.distance_cm
             distance_color.value = if (distanceResponse.distance_cm < 30 || distanceResponse.distance_cm > 50) Color(0xFFF64E4E) else Color(0xFF48861A)
@@ -93,6 +103,13 @@ fun AIreportScreen(navController: NavController) {
             distance.value = distanceValue
             angle_f.value = pitchValue.toFloat() / 90f
             distance_f.value = distanceValue.toFloat() / 90f
+
+            // ✅ 10초간 pitch, distance 조회
+            val pitchlistResponse = RetrofitClient.apiService.get10Pitch()
+            val distancelistResponse = RetrofitClient.apiService.get10Distance()
+
+            pitch10List.value = pitchlistResponse.pitch_10angle
+            distance10List.value = distancelistResponse.distance_10cm
 
             // ✅ GPT 리포트 자동 생성
             val saveResult = RetrofitClient.apiService.saveReport()
@@ -110,12 +127,6 @@ fun AIreportScreen(navController: NavController) {
             isLoading.value = false
         }
     }
-
-//    val reportItems = remember { mutableStateOf(
-//        navController.previousBackStackEntry
-//            ?.savedStateHandle
-//            ?.get<List<ReportItem>>("reportItems") ?: emptyList()
-//    ) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -142,7 +153,8 @@ fun AIreportScreen(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
-                  StatusBox(angle.value, distance.value, angle_f.value, distance_f.value, angle_color.value, distance_color.value)
+                LineStatus(pitch10List.value, distance10List.value)
+                StatusBox(angle.value, distance.value, angle_f.value, distance_f.value, angle_color.value, distance_color.value)
 
                 reportItems.value.forEach {
                     reportList(title = it.title, content = it.content)
@@ -187,6 +199,168 @@ fun AIreportScreen(navController: NavController) {
 }
 
 @Composable
+fun LineStatus(
+    angleList : List<Int>,
+    distanceList : List<Int>
+){
+    val angleData = angleList.reversed()
+    val distanceData = distanceList.reversed()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .padding(12.dp)
+            .background(Color.White, RoundedCornerShape(5.dp))
+            .border(1.dp, Color.Gray, RoundedCornerShape(5.dp))
+            .padding(12.dp)
+    ) {
+        Text(
+            text = "[10초 간 목각도, 거리 데이터 조회]",
+            fontWeight = FontWeight.Medium,
+            fontSize = 16.sp
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        MultiLineGraph(angleData,distanceData)
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Column{
+            Row {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(Color.Red, shape = CircleShape)
+                )
+
+                Text(
+                    text = " 사용자-모니터 간 거리 정상 범위 : 30~50cm",
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp
+                )
+            }
+
+            Row {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(Color.Blue, shape = CircleShape)
+                )
+
+                Text(
+                    text = " 목각도 정상 범위 : 50도 이상",
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MultiLineGraph(
+    angleData: List<Int>,
+    distanceData: List<Int>,
+    modifier: Modifier = Modifier
+        .fillMaxWidth()
+        .height(200.dp)
+) {
+    val minY = 10f
+    val maxY = 90f
+
+    Canvas(modifier = modifier.padding(horizontal = 12.dp)) {
+        val xStep = size.width / (angleData.size - 1)
+        val height = size.height
+
+        fun scaleY(value: Int): Float {
+            return height - ((value.toFloat() - minY) / (maxY - minY)) * height
+        }
+
+        // 🟨 1. 가로 격자 (y축 기준선)
+        val yIntervals = 5
+        val yStepValue = (maxY - minY) / yIntervals
+        val yStepPx = height / yIntervals
+
+        for (i in 0..yIntervals) {
+            val y = i * yStepPx
+            drawLine(
+                color = Color(0xFF818181),
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = 1.5f
+            )
+        }
+
+        // 🔵 목각도 선
+        val anglePoints = angleData.mapIndexed { i, y ->
+            Offset(i * xStep, scaleY(y))
+        }
+
+        for (i in 0 until anglePoints.size - 1) {
+            drawLine(
+                color = Color.Blue,
+                start = anglePoints[i],
+                end = anglePoints[i + 1],
+                strokeWidth = 4f
+            )
+        }
+
+        // 🔵 목각도 점 + 수치
+        anglePoints.forEachIndexed { i, point ->
+            drawCircle(color = Color.Blue, radius = 10f, center = point) // 테두리
+            drawCircle(color = Color.White, radius = 6f, center = point) // 내부
+
+            drawContext.canvas.nativeCanvas.drawText(
+                "${angleData[i]}",
+                point.x,
+                point.y - 12f,
+                android.graphics.Paint().apply {
+                    color = android.graphics.Color.BLUE
+                    textSize = 28f
+                    textAlign = android.graphics.Paint.Align.CENTER
+                    isAntiAlias = true
+                }
+            )
+        }
+
+        // 🔴 거리 선
+        val distPoints = distanceData.mapIndexed { i, y ->
+            Offset(i * xStep, scaleY(y))
+        }
+
+        for (i in 0 until distPoints.size - 1) {
+            drawLine(
+                color = Color.Red,
+                start = distPoints[i],
+                end = distPoints[i + 1],
+                strokeWidth = 4f
+            )
+        }
+
+        // 🔴 거리 점 + 수치
+        distPoints.forEachIndexed { i, point ->
+            drawCircle(color = Color.Red, radius = 10f, center = point)  // 테두리
+            drawCircle(color = Color.White, radius = 6f, center = point) // 내부
+
+            drawContext.canvas.nativeCanvas.drawText(
+                "${distanceData[i]}",
+                point.x,
+                point.y - 12f,
+                android.graphics.Paint().apply {
+                    color = android.graphics.Color.RED
+                    textSize = 28f
+                    textAlign = android.graphics.Paint.Align.CENTER
+                    isAntiAlias = true
+                }
+            )
+        }
+    }
+}
+
+
+
+
+
+@Composable
 fun StatusBox(
     angle : Int,
     distance : Int,
@@ -213,24 +387,10 @@ fun StatusBox(
                 .border(1.dp, Color.Gray, RoundedCornerShape(5.dp))
                 .padding(12.dp)
         ){
-            ProgressBar(value = "[현재 사용자-모니터 간 거리 : ${distance}cm] *범위 0~90cm",label = "\uD83D\uDCCD거리", progress = distance_f , color = angle_c)
+            ProgressBar(value = "[현재 사용자-모니터 간 거리 : ${distance}cm] *범위 0~90cm",label = "\uD83D\uDCCD거리", progress = distance_f , color = distance_c)
             Spacer(modifier = Modifier.height(20.dp))
-            ProgressBar(value = "[현재 목각도 : ${angle}도] *범위 0~90도", label = "\uD83D\uDCCD목각도", progress = angle_f, color = distance_c) // 연한 빨강
+            ProgressBar(value = "[현재 목각도 : ${angle}도] *범위 0~90도", label = "\uD83D\uDCCD목각도", progress = angle_f, color = angle_c) // 연한 빨강
         }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Text(
-            text = " *사용자-모니터 간 거리 정상 범위 : 30~50cm",
-            fontWeight = FontWeight.Medium,
-            fontSize = 14.sp
-        )
-
-        Text(
-            text = " *목각도 정상 범위 : 50도 이상",
-            fontWeight = FontWeight.Medium,
-            fontSize = 14.sp
-        )
     }
 }
 
