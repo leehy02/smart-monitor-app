@@ -12,4 +12,7 @@
 /captures
 .externalNativeBuild
 .cxx
+.idea/
+.kotlin/
+hellmate-app.git/
 local.properties
