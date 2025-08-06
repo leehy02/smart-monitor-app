@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.smartmonitor.data.DistanceList
@@ -63,83 +65,45 @@ import com.example.smartmonitor.screen.ui.theme.GmarketSans
 import com.example.smartmonitor.screen.ui.theme.SmartMonitorTheme
 import com.example.smartmonitor.screen.user.CommonTopBar
 import com.example.smartmonitor.screen.user.HamMenu
+import com.example.smartmonitor.viewmodel.ReportViewModel
 import kotlinx.coroutines.launch
 import java.nio.file.Files.size
 
 @Composable
-fun AIreportScreen(navController: NavController) {
+fun AIreportScreen(
+    navController: NavController,
+    viewModel: ReportViewModel = viewModel()
+) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    val angle = remember { mutableStateOf(0) }
-    val distance = remember {mutableStateOf(0) }
+    val isLoading = viewModel.isLoading.collectAsState()
+    val showErrorModal = viewModel.error.collectAsState()
+    val reportItems = viewModel.reportItems.collectAsState()
+    val pitch = viewModel.pitch.collectAsState()
+    val distance = viewModel.distance.collectAsState()
+    val pitch10List = viewModel.pitchList.collectAsState()
+    val distance10List = viewModel.distanceList.collectAsState()
 
-    val angle_f = remember { mutableStateOf(0.1f) }
-    val distance_f = remember {mutableStateOf(0.1f) }
-
-    val angle_color = remember { mutableStateOf(Color(0xFFB2B2B2)) }
-    val distance_color = remember {mutableStateOf(Color(0xFFB2B2B2)) }
-
-    val isLoading = remember { mutableStateOf(true) }
-    val showErrorModal = remember { mutableStateOf(false) }
-
-    val reportItems = remember { mutableStateOf<List<ReportItem>>(emptyList()) }
-    val distance10List = remember { mutableStateOf<List<Int>>(emptyList()) }
-    val pitch10List = remember { mutableStateOf<List<Int>>(emptyList()) }
+    val pitchColor = if (pitch.value < 50) Color(0xFFF64E4E) else Color(0xFF48861A)
+    val distanceColor = if (distance.value < 30 || distance.value > 50) Color(0xFFF64E4E) else Color(0xFF48861A)
 
     LaunchedEffect(Unit) {
-        try {
-            // ✅ 최근 pitch, distance 조회
-            val pitchResponse = RetrofitClient.apiService.getPitch()
-            val distanceResponse = RetrofitClient.apiService.getDistance()
-
-            val pitchValue = if (pitchResponse.pitch_angle >= 90) 90 else pitchResponse.pitch_angle
-            angle_color.value = if (pitchResponse.pitch_angle < 50) Color(0xFFF64E4E) else Color(0xFF48861A)
-
-            val distanceValue = if (distanceResponse.distance_cm >= 90) 90 else distanceResponse.distance_cm
-            distance_color.value = if (distanceResponse.distance_cm < 30 || distanceResponse.distance_cm > 50) Color(0xFFF64E4E) else Color(0xFF48861A)
-
-            angle.value = pitchValue
-            distance.value = distanceValue
-            angle_f.value = pitchValue.toFloat() / 90f
-            distance_f.value = distanceValue.toFloat() / 90f
-
-            // ✅ 10초간 pitch, distance 조회
-            val pitchlistResponse = RetrofitClient.apiService.get10Pitch()
-            val distancelistResponse = RetrofitClient.apiService.get10Distance()
-
-            pitch10List.value = pitchlistResponse.pitch_10angle
-            distance10List.value = distancelistResponse.distance_10cm
-
-            // ✅ GPT 리포트 자동 생성
-            val saveResult = RetrofitClient.apiService.saveReport()
-            if (saveResult.status == "success") {
-                val latestReport = RetrofitClient.apiService.getLatestReport()
-                reportItems.value = latestReport
-            } else {
-                showErrorModal.value = true
-            }
-
-        } catch (e: Exception) {
-            Log.e("DEBUG", "❌ 자동 리포트 실패: ${e.message}")
-            showErrorModal.value = true
-        } finally {
-            isLoading.value = false
-        }
+        viewModel.saveReportAndFetch()
     }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            HamMenu(navController, drawerState) // ✅ 새로운 서브메뉴 화면
+            HamMenu(navController, drawerState)
         }
-    ){
+    ) {
         Scaffold(
             topBar = {
                 CommonTopBar(
                     title = "자세 분석 및 교정 안내",
                     navController = navController,
-                    onMenuClick = { scope.launch { drawerState.open()} }
+                    onMenuClick = { scope.launch { drawerState.open() } }
                 )
             }
         ) { paddingValues ->
@@ -147,14 +111,21 @@ fun AIreportScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.White)
-                    .padding(paddingValues) // 상단바 아래부터 콘텐츠 배치
+                    .padding(paddingValues)
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
                 LineStatus(pitch10List.value, distance10List.value)
-                StatusBox(angle.value, distance.value, angle_f.value, distance_f.value, angle_color.value, distance_color.value)
+                StatusBox(
+                    angle = pitch.value,
+                    distance = distance.value,
+                    angle_f = pitch.value / 90f,
+                    distance_f = distance.value / 90f,
+                    angle_c = pitchColor,
+                    distance_c = distanceColor
+                )
 
                 reportItems.value.forEach {
                     reportList(title = it.title, content = it.content)
@@ -165,8 +136,8 @@ fun AIreportScreen(navController: NavController) {
 
     if (isLoading.value) {
         AlertDialog(
-            onDismissRequest = {},  // 뒤로가기나 외부 터치로 닫히지 않게
-            confirmButton = {},     // 확인 버튼 없음
+            onDismissRequest = {},
+            confirmButton = {},
             title = {
                 Text(
                     text = "잠시만 기다려 주세요...",
@@ -180,20 +151,19 @@ fun AIreportScreen(navController: NavController) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(80.dp),              // 높이 확보해서 중앙 정렬 공간 만들기
-                    contentAlignment = Alignment.Center  // ✅ 중앙 정렬
+                        .height(80.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
                 }
             },
-            containerColor = Color.White,  // ✅ 다이얼로그 배경색: 흰색
+            containerColor = Color.White
         )
-
     }
 
     if (showErrorModal.value) {
         ErrorModal {
-            showErrorModal.value = false
+            viewModel.dismissError()
         }
     }
 }
@@ -216,7 +186,7 @@ fun LineStatus(
             .padding(12.dp)
     ) {
         Text(
-            text = "[10초 간 목각도, 거리 데이터 조회]",
+            text = "[10초 간 목각도, 거리 변화 분석]",
             fontWeight = FontWeight.Medium,
             fontSize = 16.sp
         )
@@ -387,9 +357,9 @@ fun StatusBox(
                 .border(1.dp, Color.Gray, RoundedCornerShape(5.dp))
                 .padding(12.dp)
         ){
-            ProgressBar(value = "[현재 사용자-모니터 간 거리 : ${distance}cm] *범위 0~90cm",label = "\uD83D\uDCCD거리", progress = distance_f , color = distance_c)
+            ProgressBar(value = "[사용자-모니터 거리 평균 : ${distance}cm] *범위 0~90cm",label = "\uD83D\uDCCD거리", progress = distance_f , color = distance_c)
             Spacer(modifier = Modifier.height(20.dp))
-            ProgressBar(value = "[현재 목각도 : ${angle}도] *범위 0~90도", label = "\uD83D\uDCCD목각도", progress = angle_f, color = angle_c) // 연한 빨강
+            ProgressBar(value = "[목각도 평균 : ${angle}도] *범위 0~90도", label = "\uD83D\uDCCD목각도", progress = angle_f, color = angle_c) // 연한 빨강
         }
     }
 }

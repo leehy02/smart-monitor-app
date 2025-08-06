@@ -15,10 +15,10 @@ interface ApiService {
     @POST("/save_report")
     suspend fun saveReport(): SaveItem
 
-    @GET("/get_distance")
+    @GET("/get_distance_avg")
     suspend fun getDistance(): distanceItem
 
-    @GET("/get_pitch")
+    @GET("/get_pitch_avg")
     suspend fun getPitch(): pitchItem
 
     @GET("/get_distance_10")

@@ -80,12 +80,12 @@ fun MenuScreen(navController: NavController) {
 
                 Spacer(Modifier.height(50.dp))
 
-//                infoButton(
-//                    title = "CBT 모드",
-//                    guide = "◦ 챗봇을 활용한 인지 치료 상담을 제공하며, 진단 보고서를 조회할 수 있습니다.",
-//                    image = R.drawable.therapy,
-//                    onClick = { navController.navigate("cbtmode_screen") }
-//                )
+                infoButton(
+                    title = "CBT 모드",
+                    guide = "◦ 챗봇을 활용한 인지 치료 상담을 제공하며, 진단 보고서를 조회할 수 있습니다.",
+                    image = R.drawable.therapy,
+                    onClick = { navController.navigate("cbtmode_screen") }
+                )
             }
         }
     }

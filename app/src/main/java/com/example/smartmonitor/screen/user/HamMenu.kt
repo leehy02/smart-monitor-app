@@ -31,7 +31,11 @@ fun HamMenu(navController: NavController, drawerState: DrawerState) {
         "◦ AI 자세 케어" to "aimenu_screen",
         "◦ 교정 가이드" to "guide_screen",
         "◦ 자세 분석 및 교정 안내" to "aireport_screen",
-        "◦ CBT 모드" to "cbtmode_screen"
+        "◦ CBT 모드" to "cbtmode_screen",
+        "◦ CBT 리포트" to "cbtreport_screen",
+        "◦ 감정 분석" to "emotionanalysis_screen",
+        "◦ 인지 왜곡 패턴 분석" to "cognitivedistortion_screen",
+        "◦ 주간 실천 계획" to "weeklyplan_screen"
     )
 
     Column(

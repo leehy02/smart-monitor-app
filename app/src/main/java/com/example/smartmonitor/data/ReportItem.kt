@@ -12,12 +12,12 @@ class SaveItem (
 
 class pitchItem (
     val status: Boolean,
-    val pitch_angle: Int
+    val avg_pitch_angle: Int
 )
 
 class distanceItem (
     val status: Boolean,
-    val distance_cm: Int
+    val avg_distance_cm: Int
 )
 
 class PitchList (

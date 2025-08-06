@@ -1,5 +1,7 @@
 package com.example.smartmonitor.screen
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -52,11 +55,13 @@ import com.example.smartmonitor.screen.user.HamMenu
 import com.example.smartmonitor.screen.modal.ResetModal
 import com.example.smartmonitor.screen.ui.theme.GmarketSans
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 @Composable
 fun CBTmodeScreen(navController: NavController) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val scrollState = rememberScrollState()
 
@@ -89,18 +94,22 @@ fun CBTmodeScreen(navController: NavController) {
 
                 cbtinfoButton(
                     title = "CBT 시작하기",
-                    guide = "◦ CBT 상담을 시작합니다.",
+                    guide = "◦ CBT 상담을 시작합니다. 버튼을 누르면 상담 페이지로 이동합니다.",
                     image = R.drawable.consult,
-                    onClick = { navController.navigate("guide_screen") }
+                    onClick = {
+                        val url = "http://18.204.77.217:5000/"
+                        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                        context.startActivity(intent)
+                    }
                 )
 
                 Spacer(Modifier.height(30.dp))
 
                 cbtinfoButton(
                     title = "CBT 리포트",
-                    guide = "◦ CBT 상담 결과 리포트 조회가 가능합니다.",
+                    guide = "◦ CBT 진행 후 전체적인 내용을 요약된 형태로 조회가 가능합니다.",
                     image = R.drawable.cbtreport,
-                    onClick = { navController.navigate("guide_screen") }
+                    onClick = { navController.navigate("cbtreport_screen") }
                 )
 
                 Spacer(Modifier.height(30.dp))
@@ -109,7 +118,7 @@ fun CBTmodeScreen(navController: NavController) {
                     title = "감정 분석",
                     guide = "◦ 상담 전과 후의 감정 분석 결과를 그래프를 통해 제공합니다.",
                     image = R.drawable.emotion,
-                    onClick = { navController.navigate("guide_screen") }
+                    onClick = { navController.navigate("emotionanalysis_screen") }
                 )
 
                 Spacer(Modifier.height(30.dp))
@@ -118,7 +127,7 @@ fun CBTmodeScreen(navController: NavController) {
                     title = "인지 왜곡 분석",
                     guide = "◦ 상담 전과 후의 인지 왜곡 패턴 분석 결과를 그래프를 통해 제공 합니다.",
                     image = R.drawable.cognitive,
-                    onClick = { navController.navigate("aireport_screen") }
+                    onClick = { navController.navigate("cognitivedistortion_screen") }
                 )
 
                 Spacer(Modifier.height(30.dp))
@@ -127,7 +136,7 @@ fun CBTmodeScreen(navController: NavController) {
                     title = "주간 실천 계획",
                     guide = "◦ 날짜별 목표 수행 여부를 체크하며 활동량 변화를 그래프를 통해 제공합니다.",
                     image = R.drawable.plan,
-                    onClick = { navController.navigate("aireport_screen") }
+                    onClick = { navController.navigate("weeklyplan_screen") }
                 )
             }
         }
