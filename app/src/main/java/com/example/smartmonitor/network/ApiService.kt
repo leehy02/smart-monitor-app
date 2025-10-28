@@ -1,6 +1,8 @@
 package com.example.smartmonitor.network
+import com.example.smartmonitor.data.CBTdistortionItem
 import com.example.smartmonitor.data.CBTemotionItem
 import com.example.smartmonitor.data.CBTreportItem
+import com.example.smartmonitor.data.CBTthoughtItem
 import com.example.smartmonitor.data.ReportItem
 import com.example.smartmonitor.data.SaveItem
 import com.example.smartmonitor.data.distanceItem
@@ -38,4 +40,10 @@ interface ApiService {
 
     @GET("/emotion_report")
     suspend fun getEmotionReport(): List<CBTemotionItem>
+
+    @GET("/distortions_report")
+    suspend fun getDistortionReport(): List<CBTdistortionItem>
+
+    @GET("/thoughts_report")
+    suspend fun getThoughtReport(): CBTthoughtItem
 }
