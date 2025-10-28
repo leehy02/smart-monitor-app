@@ -53,8 +53,8 @@ fun CognitiveDistortionScreen( navController: NavController) {
     val scope = rememberCoroutineScope()
 
     val cognitiveContentList = listOf(
-        "◾자동적 사고 분석" to "추후 DB 연동 예정",
-        "◾대안적 사고 제공" to "추후 DB 연동 예정"
+        "◾자동적 사고 분석" to "나는 머리도 나쁘고 해도 안되는거같다, 친구는 날 싫어하는것 같아, 내가 귀찮은 존재였나봐라는 자기평가가 나타났습니다.",
+        "◾대안적 사고 제공" to "자기평가에 대해서 시험 점수가 낮더라고 계속 노력하면 개선될 수 있어, 친구에게 시간을 주고 다시 대화를 시도해보는 것도 좋은 방법이야.라는 생각으로 바꾸어 보세요."
     )
 
     val currentDate = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(Date())
@@ -101,7 +101,7 @@ fun CognitiveDistortionScreen( navController: NavController) {
                         .border(shape = RoundedCornerShape(5.dp), width = 2.dp, color = Color(0xFFA2A2A2))
                 ){
                     Text(
-                        text = " 사용자 프로필 : 김철수 27살 남자",
+                        text = " 사용자 프로필 : 김감자 17살 여자",
                         fontWeight = FontWeight.Medium,
                         fontSize = 20.sp,
                         color = Color(0xFFA2A2A2),
@@ -115,9 +115,9 @@ fun CognitiveDistortionScreen( navController: NavController) {
 
                 CognitiveBox("◾금일 상담",
                     cognitiveData = listOf(
-                        "흑백 사고" to 5f,
-                        "과잉 일반화" to 3f,
-                        "자기비하" to 2f ))
+                        "자기 비하" to 7f,
+                        "확대 해석" to 3f,
+                        ))
 
                 Spacer(Modifier.height(20.dp))
 
@@ -183,9 +183,10 @@ fun CognitiveBox(
 ) {
     val sortedEmotionData = cognitiveData.sortedByDescending { it.second }
     val defaultColors = listOf(
-        Color(0xFF4469FF),
-        Color(0xFF7CA9FF),
-        Color(0xFFA7C7FF)
+        Color(0xFF3A62FF),
+        Color(0xFF5891FF),
+        Color(0xFF80ABFF),
+        Color(0xFFA7C1FF)
     )
 
     val colorMap = sortedEmotionData.mapIndexed { index, (label, _) ->

@@ -1,10 +1,13 @@
 package com.example.smartmonitor.network
+import com.example.smartmonitor.data.CBTemotionItem
+import com.example.smartmonitor.data.CBTreportItem
 import com.example.smartmonitor.data.ReportItem
 import com.example.smartmonitor.data.SaveItem
 import com.example.smartmonitor.data.distanceItem
 import com.example.smartmonitor.data.DistanceList
 import com.example.smartmonitor.data.pitchItem
 import com.example.smartmonitor.data.PitchList
+import com.example.smartmonitor.data.UserItem
 import retrofit2.http.GET
 import retrofit2.http.POST
 
@@ -26,4 +29,13 @@ interface ApiService {
 
     @GET("/get_pitch_10")
     suspend fun get10Pitch(): PitchList
+
+    @GET("/user_info")
+    suspend fun getUserInfo(): UserItem
+
+    @GET("/summary_report")
+    suspend fun getSummaryReport(): CBTreportItem
+
+    @GET("/emotion_report")
+    suspend fun getEmotionReport(): List<CBTemotionItem>
 }
