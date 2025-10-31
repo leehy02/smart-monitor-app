@@ -35,7 +35,6 @@ class CBTweeklyViewModel : ViewModel() {
     fun togglePlan(plan: CBTplanItem, checked: Boolean) {
         val current = _uiState.value
         if (current is PlansUiState.Success) {
-            // ✅ 1️⃣ 낙관적 업데이트 (UI 즉시 반영)
             val optimistic = current.plans.map {
                 if (it.planId == plan.planId) it.copy(isCompleted = if (checked) 1 else 0) else it
             }
@@ -44,10 +43,8 @@ class CBTweeklyViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                // ✅ 2️⃣ 서버에 업데이트 요청
                 val res = CBTreportRepository.updatePlanCompletion(plan.planId, checked)
 
-                // ✅ 3️⃣ 서버 응답 기반으로 최종 갱신 (서버에서 수정된 값 반영)
                 if (current is PlansUiState.Success) {
                     val updated = current.plans.map {
                         if (it.planId == res.planId) it.copy(isCompleted = res.isCompleted) else it
@@ -56,7 +53,6 @@ class CBTweeklyViewModel : ViewModel() {
                 }
 
             } catch (e: Exception) {
-                // ✅ 4️⃣ 실패 시 롤백
                 if (current is PlansUiState.Success) {
                     _uiState.value = current
                 } else {
