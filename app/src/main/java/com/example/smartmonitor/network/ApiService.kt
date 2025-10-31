@@ -1,6 +1,7 @@
 package com.example.smartmonitor.network
 import com.example.smartmonitor.data.CBTdistortionItem
 import com.example.smartmonitor.data.CBTemotionItem
+import com.example.smartmonitor.data.CBTplanItem
 import com.example.smartmonitor.data.CBTreportItem
 import com.example.smartmonitor.data.CBTthoughtItem
 import com.example.smartmonitor.data.ReportItem
@@ -9,7 +10,10 @@ import com.example.smartmonitor.data.distanceItem
 import com.example.smartmonitor.data.DistanceList
 import com.example.smartmonitor.data.pitchItem
 import com.example.smartmonitor.data.PitchList
+import com.example.smartmonitor.data.PlanUpdateRequest
+import com.example.smartmonitor.data.PlanUpdateResponse
 import com.example.smartmonitor.data.UserItem
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 
@@ -46,4 +50,10 @@ interface ApiService {
 
     @GET("/thoughts_report")
     suspend fun getThoughtReport(): CBTthoughtItem
+
+    @GET("/plans_report")
+    suspend fun getPlansReport(): List<CBTplanItem>
+
+    @POST("/plans_report")
+    suspend fun updatePlan(@Body body: PlanUpdateRequest): PlanUpdateResponse
 }

@@ -22,4 +22,13 @@ object CBTreportRepository {
     suspend fun getThoughtReport(): CBTthoughtItem {
         return RetrofitClient.apiService.getThoughtReport()
     }
+
+    suspend fun getPlansReport(): List<CBTplanItem> {
+        return RetrofitClient.apiService.getPlansReport()
+    }
+
+    suspend fun updatePlanCompletion(planId: Int, isCompleted: Boolean): PlanUpdateResponse =
+        RetrofitClient.apiService.updatePlan(
+            PlanUpdateRequest(planId = planId, isCompleted = isCompleted)
+        )
 }

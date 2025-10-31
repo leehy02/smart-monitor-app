@@ -1,6 +1,5 @@
 package com.example.smartmonitor.screen
 
-import WeeklyPlanViewModel
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -16,6 +15,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerValue
@@ -46,36 +47,37 @@ import com.example.smartmonitor.screen.user.CommonTopBar
 import com.example.smartmonitor.screen.user.HamMenu
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Path
+import com.example.smartmonitor.viewmodel.CBTweeklyViewModel
+import com.example.smartmonitor.viewmodel.PlansUiState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+
 @Composable
-fun WeeklyPlanScreen( navController: NavController, viewModel: WeeklyPlanViewModel = viewModel()) {
+fun WeeklyPlanScreen(
+    navController: NavController,
+    vm: CBTweeklyViewModel = viewModel()
+) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    val days = listOf("월", "화", "수", "목", "금", "토", "일")
-    val selectedDay = remember { derivedStateOf { viewModel.selectedDay } }
-
-    val samplePlans = viewModel.samplePlans
-    val currentStates = viewModel.getStatesForDay(viewModel.selectedDay.value)
-    val plans = samplePlans[viewModel.selectedDay.value]
+    // 서버 상태 구독 + 최초 로드
+    val plansState = vm.uiState.collectAsState().value
+    LaunchedEffect(Unit) { vm.loadPlans() }
 
     val currentDate = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(Date())
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        drawerContent = {
-            HamMenu(navController, drawerState) // ✅ 새로운 서브메뉴 화면
-        }
+        drawerContent = { HamMenu(navController, drawerState) }
     ){
         Scaffold(
             topBar = {
                 CommonTopBar(
                     title = "주간 실천 계획",
                     navController = navController,
-                    onMenuClick = { scope.launch { drawerState.open()} }
+                    onMenuClick = { scope.launch { drawerState.open() } }
                 )
             }
         ) { paddingValues ->
@@ -83,7 +85,7 @@ fun WeeklyPlanScreen( navController: NavController, viewModel: WeeklyPlanViewMod
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.White)
-                    .padding(paddingValues) // 상단바 아래부터 콘텐츠 배치
+                    .padding(paddingValues)
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -99,90 +101,78 @@ fun WeeklyPlanScreen( navController: NavController, viewModel: WeeklyPlanViewMod
 
                 Spacer(modifier = Modifier.padding(8.dp))
 
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                ) {
-                    days.forEach { day ->
-                        Button(
-                            onClick = {
-                                viewModel.updateSelectedDay(day)
-                            },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (viewModel.selectedDay.value == day) Color(0xFF4469FF) else Color.LightGray
-                            ),
-                            modifier = Modifier.padding(horizontal = 2.dp)
-                        ) {
-                            Text(
-                                text = day,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
-                            )
-                        }
+                when (plansState) {
+                    is PlansUiState.Idle,
+                    is PlansUiState.Loading -> {
+                        Text("불러오는 중...")
                     }
-                }
+                    is PlansUiState.Error -> {
+                        Text("로드 실패: ${(plansState as PlansUiState.Error).message}", color = Color.Red)
+                        Spacer(Modifier.height(8.dp))
+                        Button(onClick = { vm.loadPlans() }) { Text("다시 시도") }
+                    }
+                    is PlansUiState.Success -> {
+                        // ✅ 요일 탭/그룹핑 제거, 실천 항목만 표시
+                        val plans = (plansState as PlansUiState.Success).plans
 
-                Spacer(modifier = Modifier.padding(3.dp))
-
-                if (plans.isNullOrEmpty()) {
-                    Text(
-                        text = "해당 요일에 상담을 진행하지 않아, 제공된 계획이 없습니다.",
-                        fontSize = 16.sp,
-                        color = Color.Gray,
-                        modifier = Modifier
-                            .padding(vertical = 16.dp)
-                            .align(Alignment.Start)
-                    )
-                } else {
-                    plans.forEachIndexed { index, item ->
-                        val checked = currentStates[index] ?: false
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Checkbox(
-                                checked = checked,
-                                onCheckedChange = {
-                                    viewModel.updateCheck(viewModel.selectedDay.value, index, it)
-                                }
-                            )
+                        if (plans.isEmpty()) {
                             Text(
-                                text = item,
+                                text = "제공된 실천 항목이 없습니다.",
                                 fontSize = 16.sp,
-                                color = Color(0xFF333333),
+                                color = Color.Gray,
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 4.dp)
+                                    .padding(vertical = 16.dp)
+                                    .align(Alignment.Start)
                             )
+                        } else {
+                            plans.forEach { plan ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Checkbox(
+                                        checked = plan.isDone, // isCompleted == 1
+                                        onCheckedChange = { checked ->
+                                            vm.togglePlan(plan, checked) // 옵티미스틱 + 실패 롤백
+                                        }
+                                    )
+                                    Text(
+                                        text = plan.planText,
+                                        fontSize = 16.sp,
+                                        color = Color(0xFF333333),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(start = 4.dp)
+                                    )
+                                }
+                            }
                         }
+
+                        HorizontalDivider(
+                            color = Color(0xFFDDDDDD),
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        )
+
+                        Text(
+                            text = "\uD83C\uDFC3\u200D♀\uFE0F 활동량 비교",
+                            fontSize = 25.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF131313),
+                            modifier = Modifier.align(Alignment.Start)
+                        )
+
+                        Spacer(modifier = Modifier.padding(3.dp))
+
+                        WeeklyLineChart(listOf(2, 2, 1, 0, 3, 2, 4))
                     }
                 }
-
-                HorizontalDivider(
-                    color = Color(0xFFDDDDDD), // 연한 회색
-                    thickness = 1.dp,
-                    modifier = Modifier.padding(vertical = 12.dp)
-                )
-
-                Text(
-                    text = "\uD83C\uDFC3\u200D♀\uFE0F 활동량 비교",
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF131313),
-                    modifier = Modifier.align(Alignment.Start)
-                )
-
-                Spacer(modifier = Modifier.padding(3.dp))
-
-                WeeklyLineChart(listOf(2, 2, 1, 0, 3, 2, 4))
             }
         }
     }
 }
+
+
 
 @Composable
 fun WeeklyLineChart(data: List<Int>) {
